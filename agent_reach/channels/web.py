@@ -8,6 +8,8 @@ search / fetch should use those first.
 import http.client
 import json
 import re
+import subprocess
+import shutil
 import time
 import urllib.request
 
@@ -170,7 +172,7 @@ class WebChannel(Channel):
             "read",
             "Read a web page as clean text",
             (Param("target", "page URL"),),
-            (("jina", "_jina_read"), ("exa", "_exa_read")),
+            (("outrider", "_outrider_read"), ("jina", "_jina_read"), ("exa", "_exa_read")),
             live_test={"target": "https://example.com"},
         ),
     )
@@ -200,6 +202,44 @@ class WebChannel(Channel):
         return body.decode("utf-8")
 
     # ── unified entry backends ──
+
+    def _outrider_read(self, *, target: str, timeout: float) -> list:
+        """Local-first read: the estate Rust fetcher (fetch-kit stack).
+
+        Backend of choice when the outrider-fetch binary is installed
+        (cargo build --release in rust/outrider-fetch, copy onto PATH).
+        Any failure here raises UPSTREAM_BROKEN so the dispatcher falls
+        through to jina/exa.
+        """
+        url = _public_url(target)
+        binary = shutil.which("outrider-fetch")
+        if not binary:
+            raise ReachError(UPSTREAM_BROKEN, "outrider-fetch binary not on PATH")
+        try:
+            proc = subprocess.run(
+                [binary, url, "--json"],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise ReachError(UPSTREAM_BROKEN, f"outrider-fetch timed out after {timeout}s") from exc
+        if proc.returncode != 0:
+            raise ReachError(
+                UPSTREAM_BROKEN,
+                f"outrider-fetch failed: {(proc.stderr or 'unknown error')[:200]}",
+            )
+        try:
+            payload = json.loads(proc.stdout)
+        except json.JSONDecodeError as exc:
+            raise ReachError(UPSTREAM_BROKEN, "outrider-fetch emitted non-JSON output") from exc
+        text = (payload.get("text") or "").strip()
+        if not text:
+            raise ReachError(UPSTREAM_BROKEN, "outrider-fetch returned no content")
+        item = make_item(url=url, text=text)
+        if payload.get("title"):
+            item["title"] = payload["title"]
+        return [item]
 
     def _exa_search(self, *, query: str, limit: int, timeout: float) -> list:
         text = _exa_call("web_search_exa", {"query": query, "objective": query, "numResults": limit}, timeout)

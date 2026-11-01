@@ -257,13 +257,34 @@ def _cmd_doctor(args: Sequence[str]) -> int:
 
     parser = _Parser(prog="doctor", add_help=False)
     parser.add_argument("--text", action="store_true")
+    parser.add_argument(
+        "--strict", action="store_true",
+        help="exit 1 when any default-level channel has problems or regressed; "
+             "CI gates consume this instead of parsing output",
+    )
     try:
         ns = parser.parse_args(list(args))
     except _ArgError as exc:
         return _bad_input(None, "doctor", str(exc))
-    if not ns.text:
-        return _mgmt("doctor", manage.doctor)
-    result = manage.doctor()
+    code = _mgmt("doctor", manage.doctor) if not ns.text else _doctor_text(manage.doctor())
+    if ns.strict and code == 0:
+        # The JSON payload was already printed; re-read the channel list from
+        # a second doctor call (cheap: local state only, no network).
+        result = manage.doctor()
+        degraded = [
+            c["channel"] for c in result["channels"]
+            if c["level"] == "default"
+            and (c.get("problems") or c.get("regressed"))
+        ]
+        if degraded:
+            sys.stderr.write(
+                "doctor --strict: degraded default channels: " + ", ".join(degraded) + "\n"
+            )
+            code = 1
+    return code
+
+
+def _doctor_text(result: dict) -> int:
     sys.stdout.write(f"Agent Reach {result['version']}\n\n")
     for c in result["channels"]:
         extra = "; ".join(c["problems"]) or c.get("hint", "")

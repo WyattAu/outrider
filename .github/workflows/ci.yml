@@ -18,3 +18,14 @@ jobs:
           enable-cache: false
       - name: clean-env integration test (install + suite)
         run: ./test.sh
+
+  rust-fetcher:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: outrider-fetch (fetch-kit =0.2.3, circuit-breaker)
+        working-directory: rust/outrider-fetch
+        run: |
+          cargo build
+          ./target/debug/outrider-fetch https://example.com --json | grep -q '"status":200'

@@ -13,5 +13,8 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
+          # test.sh builds its own isolated venv; the uv cache stays empty,
+          # and setup-uv's post step errors on an empty cache path.
+          enable-cache: false
       - name: clean-env integration test (install + suite)
         run: ./test.sh

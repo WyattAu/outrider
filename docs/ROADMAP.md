@@ -28,8 +28,13 @@
 
 ## R3: Rust hot path
 
-- [ ] Channel fetch loop in Rust (crawlkit engine + fetch-kit + breaker +
-      ratelimit), Python CLI shells down to the skill contract
+- [x] `outrider-fetch` (rust/outrider-fetch): resilient fetch + text
+      extraction on fetch-kit 0.2.2, live-verified; wired as the web
+      channel's first read backend (jina/exa fallback intact). Measured
+      2026-10-31: read/outrider 670 ms vs read/jina 1713 ms on example.com;
+      `check web` passes all backends.
+- [ ] Channel fetch loop fully in Rust (crawlkit/scanner-class engines stay
+      out of scope by design; per-channel parity vs Python backends)
 - [ ] Single static binary distribution; Python stays for agent skill glue
 - [ ] Per-channel latency + success metrics exported (estate otelkit)
 

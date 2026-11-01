@@ -62,13 +62,14 @@ async fn main() {
         std::process::exit(2);
     };
 
-    // fetch-kit 0.2.2 wires retry + circuit breaker into its middleware
-    // stack; the explicit breaker handle returns when a with_breaker-style
-    // builder lands in a published release.
+    // fetch-kit 0.2.3 published with_breaker: the explicit estate breaker
+    // handle is wired per-request-source as designed.
+    let brk = breaker::CircuitBreaker::new(breaker::CircuitBreakerConfig::standard());
     let client = fetch_kit::Client::builder()
         .user_agent("outrider-fetch/0.1 (+https://github.com/WyattAu/outrider)")
         .timeout(Duration::from_secs(30))
         .retries(3)
+        .with_breaker(brk)
         .build();
 
     let response = match client.get(&url).send().await {

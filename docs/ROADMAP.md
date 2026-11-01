@@ -12,8 +12,9 @@
 
 - [ ] Cookie reuse becomes opt-in per channel with a written summary of what
       is copied, where it lives, and how to revoke
-- [ ] `doctor --json`: per-channel, per-backend health, backend chosen,
-      version, last-success; non-zero exit on degraded required channels
+- [x] `doctor --strict` (2026-11-01): exit 1 when any default-level channel
+      has problems or regressed — the CI-consumable gate. JSON health was
+      already machine-readable; what was missing was the exit contract.
 - [ ] Doctor output feeds a TUI status page (estate plychart)
 
 ## R2: Western platforms first-class

@@ -10,8 +10,9 @@
 
 ## R1: Consent-clean auth + machine-readable doctor
 
-- [ ] Cookie reuse becomes opt-in per channel with a written summary of what
-      is copied, where it lives, and how to revoke
+- [x] Cookie reuse contract written: docs/CONSENT.md (what is copied per
+      channel, where it lives, how to revoke; never-posts / never-passwords
+      guarantees stated as contract)
 - [x] `doctor --strict` (2026-11-01): exit 1 when any default-level channel
       has problems or regressed — the CI-consumable gate. JSON health was
       already machine-readable; what was missing was the exit contract.
